@@ -404,259 +404,163 @@ with open("FacialKeyPoints-model.json", "w") as json_file:
 with open('detection.json', 'r') as json_file:
     json_savedModel = json_file.read()
 
-
 # Load the model architecture
-#model_1_facialKeyPoints = tf.keras.models.model_from_json(json_savedModel)
+with open('detection.json', 'r') as json_file:
+    json_savedModel= json_file.read()
 
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input, Dense
-from tensorflow.keras.utils import register_keras_serializable
+# load the model architecture
+model_1_facialKeyPoints = tf.keras.models.model_from_json(json_savedModel)
+model_1_facialKeyPoints.load_weights('weights_keypoint.hdf5')
+adam = tf.keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.9, beta_2=0.999, amsgrad=False)
+model_1_facialKeyPoints.compile(loss="mean_squared_error", optimizer= adam , metrics = ['accuracy'])
 
-@register_keras_serializable(package='Custom', name='MyModel')
-class MyModel(Model):
-    def __init__(self, **kwargs):
-        super(MyModel, self).__init__(**kwargs)
-        self.dense = Dense(10)
+import tensorflow as tf
 
-    def call(self, inputs):
-        return self.dense(inputs)
+# Load the model architecture from JSON
+with open('detection.json', 'r') as json_file:
+    json_savedModel = json_file.read()
 
-    def get_config(self):
-        config = super(MyModel, self).get_config()
-        return config
-
-# Example usage
-inputs = Input(shape=(96, 96, 1))
-outputs = MyModel()(inputs)
-model = Model(inputs, outputs)
+model_1_facialKeyPoints = tf.keras.models.model_from_json(json_savedModel)
 
 # Load the model weights
 model_1_facialKeyPoints.load_weights('weights_keypoint.hdf5')
 
-# Define the Adam optimizer
-adam = tf.keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.9, beta_2=0.999, amsgrad=False)
+# Compile the model with Adam optimizer
+adam = tf.keras.optimizers.Adam(
+    learning_rate=0.0001,
+    beta_1=0.9,
+    beta_2=0.999,
+    amsgrad=False
+)
 
-# Compile the model
-model_1_facialKeyPoints.compile(loss="mean_squared_error", optimizer=adam, metrics=['accuracy'])
+model_1_facialKeyPoints.compile(
+    loss="mean_squared_error",
+    optimizer=adam,
+    metrics=['accuracy']
+)
 
-# Evaluate the model
+# Evaluate the model on test data
 result = model_1_facialKeyPoints.evaluate(X_test, y_test)
-print("Accuracy : {}".format(result[1]))
+
+# Print the accuracy
+print("Accuracy : {:.2f}%".format(result[1] * 100))
 
 # Get the model keys
-keys = history.history.keys()
-print(keys)
+history.history.keys()
 
-""" # Plot the training artifacts
+# Plot the training artifacts
+
 plt.plot(history.history['loss'])
 plt.plot(history.history['val_loss'])
 plt.title('Model loss')
 plt.ylabel('loss')
 plt.xlabel('epoch')
-plt.legend(['train_loss', 'val_loss'], loc='upper right')
-plt.show() """
-# Check if history contains the required keys
-if 'loss' in history.history and 'val_loss' in history.history:
-    # Plot the training artifacts
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('Model loss')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.legend(['train_loss', 'val_loss'], loc='upper right')
-    plt.show()
-else:
-    print("The history object does not contain 'loss' and 'val_loss' keys.")
+plt.legend(['train_loss','val_loss'], loc = 'upper right')
+plt.show()
 
+#Part 2 - Facial expression detection
 
-# Read the CSV file for the facial expression data
+# read the csv files for the facial expression data
 facialexpression_df = pd.read_csv('icml_face_data.csv')
 
-# Display the first few rows of the dataframe
-print(facialexpression_df.head())
+facialexpression_df
 
-# Display the first few rows of the DataFrame
-print(facialexpression_df.head())
+facialexpression_df[' pixels'][0] # String format
 
-# Display a summary of the DataFrame
-print(facialexpression_df.info())
+# function to convert pixel values in string format to array format
 
-# Access the first element in the 'pixels' column
-first_pixel_data = facialexpression_df[' pixels'][0]
-
-# Display the data
-print(first_pixel_data)
-
-# Function to convert pixel values in string format to array format
 def string2array(x):
-    return np.array(x.split(' ')).reshape(48, 48, 1).astype('float32')
+  return np.array(x.split(' ')).reshape(48, 48, 1).astype('float32')
 
-import cv2
+# Resize images from (48, 48) to (96, 96)
 
-# Function to resize images from (48, 48) to (96, 96)
 def resize(x):
-    img = x.reshape(48, 48)
-    return cv2.resize(img, dsize=(96, 96), interpolation=cv2.INTER_CUBIC)
 
-# Apply the string2array function to the 'pixels' column
+  img = x.reshape(48, 48)
+  return cv2.resize(img, dsize=(96, 96), interpolation = cv2.INTER_CUBIC)
+
 facialexpression_df[' pixels'] = facialexpression_df[' pixels'].apply(lambda x: string2array(x))
 
-# Apply the resize function to the 'pixels' column
 facialexpression_df[' pixels'] = facialexpression_df[' pixels'].apply(lambda x: resize(x))
 
-# Display the first few rows of the DataFrame
-print(facialexpression_df.head())
+facialexpression_df.head()
 
-# Check the shape of the DataFrame
-print(facialexpression_df.shape)
+# check the shape of data_frame
+facialexpression_df.shape
 
-# Check for the presence of null values in the DataFrame
-null_values = facialexpression_df.isnull().sum()
-print(null_values)
+# check for the presence of null values in the data frame
+facialexpression_df.isnull().sum()
 
-# Dictionary to map numerical labels to facial expressions
-label_to_text = {0: 'anger', 1: 'disgust', 2: 'sad', 3: 'happiness', 4: 'surprise'}
+label_to_text = {0:'anger', 1:'disgust', 2:'sad', 3:'happiness', 4: 'surprise'}
 
-import matplotlib.pyplot as plt
+plt.imshow(facialexpression_df[' pixels'][0], cmap = 'gray')
 
-# Display the first image in the 'pixels' column
-plt.imshow(facialexpression_df[' pixels'][0], cmap='gray')
-plt.title('First Image')
-plt.axis('off')  # Hide the axis
-plt.show()
-
-# List of emotions
+# Visualising the images and plot labels
 emotions = [0, 1, 2, 3, 4]
 
-# Loop through each emotion and display one image
 for i in emotions:
-    data = facialexpression_df[facialexpression_df['emotion'] == i][:1]
-    img = data[' pixels'].item()
-    img = img.reshape(96, 96)
-    plt.figure()
-    plt.title(label_to_text[i])
-    plt.imshow(img, cmap='gray')
-    plt.axis('off')  # Hide the axis for a cleaner look
-    plt.show()
+  data = facialexpression_df[facialexpression_df['emotion'] == i][:1]
+  img = data[' pixels'].item()
+  img = img.reshape(96, 96)
+  plt.figure()
+  plt.title(label_to_text[i])
+  plt.imshow(img, cmap = 'gray')
 
-# Get the indices of unique emotion labels sorted by their frequency
-emotion_indices = facialexpression_df.emotion.value_counts().index
-print(emotion_indices)
+  #Plot bar chart to outline how many samples (images) are present per emotion
+facialexpression_df.emotion.value_counts().index
 
-# Get the count of each unique emotion label
-emotion_counts = facialexpression_df.emotion.value_counts()
-print(emotion_counts)
+facialexpression_df.emotion.value_counts()
 
-import matplotlib.pyplot as plt
-import seaborn as sns
+plt.figure(figsize = (10,10))
+sns.barplot(x = facialexpression_df.emotion.value_counts().index, y = facialexpression_df.emotion.value_counts())
 
-# Create a bar plot of the emotion counts
-plt.figure(figsize=(10, 10))
-sns.barplot(x=facialexpression_df.emotion.value_counts().index, y=facialexpression_df.emotion.value_counts())
-plt.title('Emotion Counts')
-plt.xlabel('Emotion')
-plt.ylabel('Count')
-plt.show()
+#Performing data preparation and image augmentation
 
-#TASK #14: PERFORM DATA PREPARATION AND IMAGE AUGMENTATION
-# Split the dataframe into features and labels
-
-# Split the dataframe into features and labels
+# split the dataframe in to features and labels
 from keras.utils import to_categorical
 
 X = facialexpression_df[' pixels']
 y = to_categorical(facialexpression_df['emotion'])
 
-first_element = X[0]
-print(first_element)
+X[0]
+
 print(y)
 
-# Stack the elements of X along a new axis
-X = np.stack(X, axis=0)
-
-# Reshape X to the desired dimensions
+X = np.stack(X, axis = 0)
 X = X.reshape(24568, 96, 96, 1)
 
-# Print the shapes of X and y
 print(X.shape, y.shape)
+
+# split the dataframe in to train, test and validation data frames
 
 from sklearn.model_selection import train_test_split
 
-# Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, shuffle=True)
-
-# Split the testing set into validation and testing sets
-X_val, X_test, y_val, y_test = train_test_split(X_test, y_test, test_size=0.5, shuffle=True)
-
-# Print the shapes of the datasets
-print(X_train.shape, X_val.shape, X_test.shape)
-print(y_train.shape, y_val.shape, y_test.shape)
+X_train, X_Test, y_train, y_Test = train_test_split(X, y, test_size = 0.1, shuffle = True)
+X_val, X_Test, y_val, y_Test = train_test_split(X_Test, y_Test, test_size = 0.5, shuffle = True)
 
 print(X_val.shape, y_val.shape)
-print(X_test.shape, y_test.shape)
+
+print(X_Test.shape, y_Test.shape)
+
 print(X_train.shape, y_train.shape)
 
-# Image pre-processing
-X_train = X_train / 255.0
-X_val = X_val / 255.0
-X_test = X_test / 255.0
+# image pre-processing
+X_train = X_train/255
+X_val   = X_val /255
+X_Test  = X_Test/255
 
-# Print the first few elements of X_train
-print(X_train[:5])
+X_train
 
-# Print the shape of X_train
-print(X_train.shape)
-
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-
-# Create an ImageDataGenerator with extended data augmentation
 train_datagen = ImageDataGenerator(
-    rotation_range=15,
-    width_shift_range=0.1,
-    height_shift_range=0.1,
-    shear_range=0.1,
-    zoom_range=0.1,
-    horizontal_flip=True,
-    vertical_flip=True,
-    brightness_range=[1.1, 1.5],
-    fill_mode="nearest"
-)
+rotation_range = 15,
+    width_shift_range = 0.1,
+    height_shift_range = 0.1,
+    shear_range = 0.1,
+    zoom_range = 0.1,
+    horizontal_flip = True,
+    fill_mode = "nearest")
 
-
-from tensorflow.keras.layers import Input, ZeroPadding2D, Conv2D, BatchNormalization, Activation, MaxPooling2D, AveragePooling2D, Flatten, Dense, Add
-from tensorflow.keras.models import Model
-from tensorflow.keras.initializers import glorot_uniform
-
-def res_block(X, filters, stage):
-    # Retrieve Filters
-    F1, F2, F3 = filters
-
-    # Save the input value
-    X_shortcut = X
-
-    # First component of main path
-    X = Conv2D(F1, (1, 1), strides=(1, 1), name=f'res{stage}_branch2a', kernel_initializer=glorot_uniform(seed=0))(X)
-    X = BatchNormalization(axis=3, name=f'bn{stage}_branch2a')(X)
-    X = Activation('relu')(X)
-
-    # Second component of main path
-    X = Conv2D(F2, (3, 3), strides=(1, 1), padding='same', name=f'res{stage}_branch2b', kernel_initializer=glorot_uniform(seed=0))(X)
-    X = BatchNormalization(axis=3, name=f'bn{stage}_branch2b')(X)
-    X = Activation('relu')(X)
-
-    # Third component of main path
-    X = Conv2D(F3, (1, 1), strides=(1, 1), name=f'res{stage}_branch2c', kernel_initializer=glorot_uniform(seed=0))(X)
-    X = BatchNormalization(axis=3, name=f'bn{stage}_branch2c')(X)
-
-    # Shortcut path
-    X_shortcut = Conv2D(F3, (1, 1), strides=(1, 1), name=f'res{stage}_branch1', kernel_initializer=glorot_uniform(seed=0))(X_shortcut)
-    X_shortcut = BatchNormalization(axis=3, name=f'bn{stage}_branch1')(X_shortcut)
-
-    # Add shortcut value to main path
-    X = Add()([X, X_shortcut])
-    X = Activation('relu')(X)
-
-    return X
+# Building and traning deep learning model for facial expression classification
 
 input_shape = (96, 96, 1)
 
@@ -667,286 +571,121 @@ X_input = Input(input_shape)
 X = ZeroPadding2D((3, 3))(X_input)
 
 # 1 - stage
-X = Conv2D(64, (7, 7), strides=(2, 2), name='conv1', kernel_initializer=glorot_uniform(seed=0))(X)
-X = BatchNormalization(axis=3, name='bn_conv1')(X)
+X = Conv2D(64, (7, 7), strides= (2, 2), name = 'conv1', kernel_initializer= glorot_uniform(seed = 0))(X)
+X = BatchNormalization(axis =3, name = 'bn_conv1')(X)
 X = Activation('relu')(X)
-X = MaxPooling2D((3, 3), strides=(2, 2))(X)
+X = MaxPooling2D((3, 3), strides= (2, 2))(X)
 
 # 2 - stage
-X = res_block(X, filters=[64, 64, 256], stage=2)
+X = res_block(X, filter= [64, 64, 256], stage= 2)
 
 # 3 - stage
-X = res_block(X, filters=[128, 128, 512], stage=3)
+X = res_block(X, filter= [128, 128, 512], stage= 3)
 
 # 4 - stage
-# X = res_block(X, filters=[256, 256, 1024], stage=4)
+# X = res_block(X, filter= [256, 256, 1024], stage= 4)
 
 # Average Pooling
-X = AveragePooling2D((4, 4), name='Average_Pooling')(X)
+X = AveragePooling2D((4, 4), name = 'Averagea_Pooling')(X)
 
 # Final layer
 X = Flatten()(X)
-X = Dense(5, activation='softmax', name='Dense_final', kernel_initializer=glorot_uniform(seed=0))(X)
+X = Dense(5, activation = 'softmax', name = 'Dense_final', kernel_initializer= glorot_uniform(seed=0))(X)
 
-model_2_emotion = Model(inputs=X_input, outputs=X, name='Resnet18')
+model_2_emotion = Model( inputs= X_input, outputs = X, name = 'Resnet18')
 
-model_2_emotion.summary() 
+model_2_emotion.summary()
 
+# train the network
+model_2_emotion.compile(optimizer = "Adam", loss = "categorical_crossentropy", metrics = ["accuracy"])
 
-# Compile the model
-# model_2_emotion.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=["accuracy"])
+# Recall that the first facial key points model was saved as follows: FacialKeyPoints_weights.hdf5 and FacialKeyPoints-model.json
 
-# Assuming you have your training data in variables X_train and Y_train
-# and your validation data in variables X_val and Y_val
+# using early stopping to exit training if validation loss is not decreasing even after certain epochs (patience)
+earlystopping = EarlyStopping(monitor = 'val_loss', mode = 'min', verbose = 1, patience = 20)
 
+# save the best model with lower validation loss
+checkpointer = ModelCheckpoint(filepath = "FacialExpression_weights.hdf5", verbose = 1, save_best_only=True)
 
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+history = model_2_emotion.fit(train_datagen.flow(X_train, y_train, batch_size=64),
+    validation_data=(X_val, y_val), steps_per_epoch=len(X_train) // 64,
+    epochs= 2, callbacks=[checkpointer, earlystopping])
 
-# Early stopping to exit training if validation loss is not decreasing after certain epochs (patience)
-earlystopping = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=20)
+history = model_2_emotion.fit(train_datagen.flow(X_train, y_train, batch_size=64),
+    validation_data=(X_val, y_val), steps_per_epoch=len(X_train) // 64,
+    epochs= 2, callbacks=[checkpointer, earlystopping])
 
-# Save the best model with the lowest validation loss
-checkpointer = ModelCheckpoint(filepath="FacialExpression_weights.keras", verbose=1, save_best_only=True)
+# saving the model architecture to json file for future use
 
-# Train the model with early stopping and model checkpointing
-history = model_2_emotion.fit(X_train, y_train, epochs=2, batch_size=32, validation_data=(X_val, y_val),
-                              callbacks=[earlystopping, checkpointer])
-
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-
-# Assuming you have already defined and compiled your model as model_2_emotion
-
-# Early stopping to exit training if validation loss is not decreasing after certain epochs (patience)
-earlystopping = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=20)
-
-# Save the best model with the lowest validation loss
-checkpointer = ModelCheckpoint(filepath="FacialExpression_weights.keras", verbose=1, save_best_only=True)
-
-# Data augmentation
-train_datagen = ImageDataGenerator(
-    rescale=1./255,
-    shear_range=0.2,
-    zoom_range=0.2,
-    horizontal_flip=True
-)
-
-# Train the model with early stopping and model checkpointing
-history = model_2_emotion.fit(
-    train_datagen.flow(X_train, y_train, batch_size=64),
-    validation_data=(X_val, y_val),
-    steps_per_epoch=len(X_train) // 64,
-    epochs=2,
-    callbacks=[checkpointer, earlystopping]
-)
-
-# Saving the model architecture to a JSON file
 model_json = model_2_emotion.to_json()
-with open("FacialExpression-model.json", "w") as json_file:
-    json_file.write(model_json)
+with open("FacialExpression-model.json","w") as json_file:
+  json_file.write(model_json)
 
-#Task 17 - ASSESS THE PERFORMANCE OF TRAINED FACIAL EXPRESSION CLASSIFIER MODEL
+#Assessing the performance of trained facial expression classifier model
 
-import tensorflow as tf
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.metrics import confusion_matrix, classification_report
+with open('emotion.json', 'r') as json_file:
+    json_savedModel= json_file.read()
 
-# Define any custom layers or classes if used in the model
-from tensorflow.keras.layers import Layer
-from tensorflow.keras.utils import register_keras_serializable
-from tensorflow.python.keras.models import model_from_json
+# load the model architecture
+model_2_emotion = tf.keras.models.model_from_json(json_savedModel)
+model_2_emotion.load_weights('weights_emotions.hdf5')
+model_2_emotion.compile(optimizer = "Adam", loss = "categorical_crossentropy", metrics = ["accuracy"])
 
-# Save model architecture to JSON file
-model_json = model_2_emotion.to_json()
-with open("emotion.json", "w") as json_file:
-    json_file.write(model_json)
+score = model_2_emotion.evaluate(X_Test, y_Test)
+print('Test Accuracy: {}'.format(score[1]))
 
-# Save model weights to HDF5 file
-# model_2_emotion.save_weights("weights_emotions.hdf5")
-model_2_emotion.save_weights("weights_emotions.weights.h5")
+history.history.keys()
 
+accuracy = history.history['accuracy']
+val_accuracy = history.history['val_accuracy']
+loss = history.history['loss']
+val_loss = history.history['val_loss']
 
-import tensorflow as tf
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.metrics import confusion_matrix, classification_report
-from tensorflow.keras.layers import Layer
-from tensorflow.keras.utils import register_keras_serializable
-from tensorflow.python.keras.models import model_from_json
+epochs = range(len(accuracy))
 
-@register_keras_serializable(package='Custom', name='CustomLayer')
-class CustomLayer(Layer):
-    def __init__(self, **kwargs):
-        super(CustomLayer, self).__init__(**kwargs)
-    
-    def call(self, inputs):
-        return inputs
+plt.plot(epochs, accuracy, 'bo', label='Training Accuracy')
+plt.plot(epochs, val_accuracy, 'b', label='Validation Accuracy')
+plt.title('Training and Validation Accuracy')
+plt.legend()
 
-try:     
-    # Load the model architecture from a JSON file
-    with open('emotion.json', 'r') as json_file:
-        json_savedModel = json_file.read()
-    print("Model architecture loaded successfully.")
+plt.plot(epochs, loss, 'ro', label='Training loss')
+plt.plot(epochs, val_loss, 'r', label='Validation loss')
+plt.title('Training and Validation loss')
+plt.legend()
 
-    # Define custom objects
-    custom_objects = {
-        'CustomLayer': CustomLayer  # Add other custom objects if needed
-    }
+# predicted_classes = model.predict_classes(X_test)
+predicted_classes = np.argmax(model_2_emotion.predict(X_Test), axis=-1)
+y_true = np.argmax(y_Test, axis=-1)
 
-    # Recreate the model from the JSON data
-    model_2_emotion = model_from_json(json_savedModel, custom_objects=custom_objects)
-    print("Model recreated from JSON successfully.")
+y_true.shape
 
-    # Load the model weights
-    model_2_emotion.load_weights('weights_emotions.hdf5')
-    print("Model weights loaded successfully.")
+from sklearn.metrics import confusion_matrix
+cm = confusion_matrix(y_true, predicted_classes)
+plt.figure(figsize = (10, 10))
+sns.heatmap(cm, annot = True, cbar = False)
 
-    # Compile the model with optimizer, loss function, and metrics
-    model_2_emotion.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=["accuracy"])
-    print("Model compiled successfully.")
+# Checking the predictions - Print out 25 images along their predicted/true label and print out their classification report and analyse precision and recall
 
-    # Load test data (Ensure X_test and y_test are defined)
-    # Example: Replace with actual test data loading method
-    # X_test, y_test = load_test_data() 
-    if 'X_test' not in locals() or 'y_test' not in locals():
-        raise ValueError("Test data (X_test, y_test) is not defined. Load your test dataset before evaluation.")
+L = 5
+W = 5
 
-    # Evaluate the model on the test data
-    score = model_2_emotion.evaluate(X_test, y_test, verbose=0)
-    print('Test Accuracy: {:.2f}%'.format(score[1] * 100))
-
-    # Check if history object exists
-    if 'history' in locals():
-        # Extract training and validation accuracy and loss from the history object
-        accuracy = history.history['accuracy']
-        val_accuracy = history.history['val_accuracy']
-        loss = history.history['loss']
-        val_loss = history.history['val_loss']
-
-        # Plot training and validation accuracy
-        epochs = range(len(accuracy))
-        plt.plot(epochs, accuracy, 'bo', label='Training Accuracy')
-        plt.plot(epochs, val_accuracy, 'b', label='Validation Accuracy')
-        plt.title('Training and Validation Accuracy')
-        plt.legend()
-        plt.show()
-
-        # Plot training and validation loss
-        plt.plot(epochs, loss, 'ro', label='Training loss')
-        plt.plot(epochs, val_loss, 'r', label='Validation loss')
-        plt.title('Training and Validation loss')
-        plt.legend()
-        plt.show()
-    else:
-        print("History object not found. Ensure the model has been trained and the history object is available.")
-
-    # Predict classes for the test data
-    predicted_classes = np.argmax(model_2_emotion.predict(X_test), axis=-1)
-    y_true = np.argmax(y_test, axis=-1)
-    print("Predictions made successfully.")
-
-    # Compute the confusion matrix
-    cm = confusion_matrix(y_true, predicted_classes)
-    plt.figure(figsize=(10, 10))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', cbar=False)
-    plt.xlabel('Predicted Label')
-    plt.ylabel('True Label')
-    plt.title('Confusion Matrix')
-    plt.show()
-    print("Confusion matrix plotted successfully.")
-
-    # Define label_to_text mapping (replace with actual class labels)
-    label_to_text = {0: "Angry", 1: "Happy", 2: "Neutral", 3: "Sad", 4: "Surprised"}  
-
-    # Display some test images with their predicted and true labels
-    L, W = 5, 5  # Grid size for visualization
-    fig, axes = plt.subplots(L, W, figsize=(12, 12))
-    axes = axes.ravel()
-    
-    for i in np.arange(0, L * W):
-        if i < len(X_test):  # Ensure we don't exceed test set size
-            axes[i].imshow(X_test[i].reshape(96, 96), cmap='gray')
-            axes[i].set_title(f'Pred: {label_to_text[predicted_classes[i]]}\nTrue: {label_to_text[y_true[i]]}')
-            axes[i].axis('off')
-
-    plt.subplots_adjust(wspace=1)
-    plt.show()
-    print("Test images displayed successfully.")
-
-    # Print the classification report
-    print(classification_report(y_true, predicted_classes))
-    print("Classification report printed successfully.")
-
-except FileNotFoundError as fnf_error:
-    print("File not found error:", fnf_error)
-except ValueError as val_error:
-    print("Value error:", val_error)
-except Exception as e:
-    print("An error occurred:", e)
-
-
-## TASK #18: COMBINE BOTH MODELS
-# FACIAL KEY POINTS DETECTION AND FACIAL EXPRESSION MODELS
-
-def predict(X_test):
-
-  # Making prediction from the keypoint model
-  df_predict = model_1_facialKeyPoints.predict(X_test)
-
-  # Making prediction from the emotion model
-  df_emotion = np.argmax(model_2_emotion.predict(X_test), axis=-1)
-
-  # Reshaping array from (856,) to (856,1)
-  df_emotion = np.expand_dims(df_emotion, axis = 1)
-
-  # Converting the predictions into a dataframe
-  df_predict = pd.DataFrame(df_predict, columns= columns)
-
-  # Adding emotion into the predicted dataframe
-  df_predict['emotion'] = df_emotion
-
-  return df_predict
-
-df_predict = predict(X_test)
-
-df_predict.head()
-
-# Plotting the test images and their predicted keypoints and emotions
-
-fig, axes = plt.subplots(4, 4, figsize = (24, 24))
+fig, axes = plt.subplots(L, W, figsize = (24, 24))
 axes = axes.ravel()
 
-for i in range(16):
-
-    axes[i].imshow(X_test[i].squeeze(),cmap='gray')
-    axes[i].set_title('Prediction = {}'.format(label_to_text[df_predict['emotion'][i]]))
+for i in np.arange(0, L*W):
+    axes[i].imshow(X_test[i].reshape(96,96), cmap = 'gray')
+    axes[i].set_title('Prediction = {}\n True = {}'.format(label_to_text[predicted_classes[i]], label_to_text[y_true[i]]))
     axes[i].axis('off')
-    for j in range(1,31,2):
-            axes[i].plot(df_predict.loc[i][j-1], df_predict.loc[i][j], 'rx')
 
-import json
-import tensorflow.keras.backend as K
+plt.subplots_adjust(wspace = 1)
 
-def deploy(directory, model):
-  MODEL_DIR = directory
-  version = 1
+from sklearn.metrics import classification_report
+print(classification_report(y_true, predicted_classes))
 
-  # Let's join the temp model directory with our chosen version number
-  # The expected result will be = '\tmp\version number'
-  export_path = os.path.join(MODEL_DIR, str(version))
-  print('export_path = {}\n'.format(export_path))
+# NEXT STEPS YET TO DO:
+# 1. COMBINING BOTH FACIAL EXPRESSION AND KEY POINTS DETECTION MODELS
+# 2. SERVE THE MODEL USING TENSORFLOW SERVING
+# 3. MAKE REQUESTS TO MODEL IN TENSORFLOW SERVING
 
-  # Let's save the model using saved_model.save
-
-  tf.saved_model.save(model, export_path)
-
-  os.environ["MODEL_DIR"] = MODEL_DIR
-
-  ## TASK #20. SERVE THE MODEL USING TENSORFLOW SERVING
-
-  # TASK #21: MAKE REQUESTS TO MODEL IN TENSORFLOW SERVING
 
 
