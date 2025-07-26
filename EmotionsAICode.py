@@ -23,7 +23,7 @@ from keras import optimizers
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 
-# Change directory to your project folder
+# directory of the project folder
 os.chdir('C:/Users/Vanshika.Bharadwaj/OneDrive - Ricoh Europe PLC/Documents/Final Year Project Ideas/EmotionAI/')
 # Load facial key points data
 keyfacialimage_df = pd.read_csv('C:/Users/Vanshika.Bharadwaj/OneDrive - Ricoh Europe PLC/Documents/Final Year Project Ideas/EmotionAI/data.csv')
