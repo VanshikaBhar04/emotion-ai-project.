@@ -404,40 +404,11 @@ with open("FacialKeyPoints-model.json", "w") as json_file:
 with open('detection.json', 'r') as json_file:
     json_savedModel = json_file.read()
 
-# Load the model architecture
-with open('detection.json', 'r') as json_file:
-    json_savedModel= json_file.read()
-
 # load the model architecture
 model_1_facialKeyPoints = tf.keras.models.model_from_json(json_savedModel)
 model_1_facialKeyPoints.load_weights('weights_keypoint.hdf5')
 adam = tf.keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.9, beta_2=0.999, amsgrad=False)
 model_1_facialKeyPoints.compile(loss="mean_squared_error", optimizer= adam , metrics = ['accuracy'])
-
-import tensorflow as tf
-
-# Load the model architecture from JSON
-with open('detection.json', 'r') as json_file:
-    json_savedModel = json_file.read()
-
-model_1_facialKeyPoints = tf.keras.models.model_from_json(json_savedModel)
-
-# Load the model weights
-model_1_facialKeyPoints.load_weights('weights_keypoint.hdf5')
-
-# Compile the model with Adam optimizer
-adam = tf.keras.optimizers.Adam(
-    learning_rate=0.0001,
-    beta_1=0.9,
-    beta_2=0.999,
-    amsgrad=False
-)
-
-model_1_facialKeyPoints.compile(
-    loss="mean_squared_error",
-    optimizer=adam,
-    metrics=['accuracy']
-)
 
 # Evaluate the model on test data
 result = model_1_facialKeyPoints.evaluate(X_test, y_test)
