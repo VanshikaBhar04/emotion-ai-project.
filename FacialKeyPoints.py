@@ -23,7 +23,6 @@ from keras import optimizers
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 
-# Change directory to your project folder
 os.chdir('C:/Users/Vanshika.Bharadwaj/OneDrive - Ricoh Europe PLC/Documents/Final Year Project Ideas/EmotionAI/')
 # Load facial key points data
 keyfacialimage_df = pd.read_csv('C:/Users/Vanshika.Bharadwaj/OneDrive - Ricoh Europe PLC/Documents/Final Year Project Ideas/EmotionAI/data.csv')
@@ -78,7 +77,7 @@ plot_image_grid(keyfacialimage_df, 16, 4)
 # Plot an 8x8 grid of images
 plot_image_grid(keyfacialimage_df, 64, 8)
 
-# Task 4: Create a new copy of the DataFrame
+# Create a new copy of the DataFrame
 keyfacialimage_df_copy = copy.deepcopy(keyfacialimage_df)
 
 # Obtain the columns in the DataFrame, excluding the last column
